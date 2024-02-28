@@ -81,7 +81,10 @@ default_artifacts:
     - virtualbox
     - vmware
     - vultr
-
+  podman:
+    - applehv
+    - hyperv
+    - qemu
 clouds:
   aws:
     bucket: fcos-builds/ami-import
