@@ -1,5 +1,5 @@
 def gitref, commit, shortcommit
-def containername = 'podman-fcos'
+def containername = 'machine-images'
 node {
     checkout scm
     // these are script global vars
@@ -44,11 +44,11 @@ properties([
              trim: true),
       string(name: 'CONTAINER_REGISTRY_REPO',
              description: 'Override the registry to push the container to',
-             defaultValue: "quay.io/ravanelli/${containername}",
+             defaultValue: "quay.io/podman/${containername}",
              trim: true),
       string(name: 'CONTAINER_REGISTRY_STAGING_REPO',
              description: 'Override the staging registry where intermediate images go',
-             defaultValue: "quay.io/ravanelli/staging",
+             defaultValue: "quay.io/podman/playground",
              trim: true),
       string(name: 'COREOS_ASSEMBLER_IMAGE',
              description: 'Override the coreos-assembler image to use',
