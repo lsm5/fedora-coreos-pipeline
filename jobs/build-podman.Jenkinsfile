@@ -1,5 +1,5 @@
 def gitref, commit, shortcommit
-def containername = 'podman-fcos'
+def containername = 'machine-images'
 node {
     checkout scm
     // these are script global vars
@@ -44,11 +44,11 @@ properties([
              trim: true),
       string(name: 'CONTAINER_REGISTRY_REPO',
              description: 'Override the registry to push the container to',
-             defaultValue: "quay.io/ravanelli/${containername}",
+             defaultValue: "quay.io/podman/${containername}",
              trim: true),
       string(name: 'CONTAINER_REGISTRY_STAGING_REPO',
              description: 'Override the staging registry where intermediate images go',
-             defaultValue: "quay.io/ravanelli/staging",
+             defaultValue: "quay.io/podman/staging",
              trim: true),
       string(name: 'COREOS_ASSEMBLER_IMAGE',
              description: 'Override the coreos-assembler image to use',
@@ -195,7 +195,25 @@ lock(resource: "build-${containername}") {
                  shwrap("""cosa kola run  --basic-qemu-scenarios --qemu-image=./podman-${commit}.qcow2""")
               }
              stage("Upload Artifact") {
-                 echo("On going")
+                 parallel push_containers.collectEntries{configname, val -> [configname, {
+                     if (!registry_repos?."${configname}"?.'repo') {
+                         echo "No registry repo config for ${configname}. Skipping"
+                         return
+                     }
+                     withCredentials([file(variable: 'REGISTRY_SECRET',
+                                           credentialsId: 'podman-push-registry-secret')]) {
+                         def repo = registry_repos[configname]['repo']
+                         def (artifact, metajsonname) = val
+                         def tag_args = registry_repos[configname].tags.collect{"--tag=$it"}
+                         def v2s2_arg = registry_repos.v2s2 ? "--v2s2" : ""
+                         shwrap("""
+                         export STORAGE_DRIVER=vfs # https://github.com/coreos/fedora-coreos-pipeline/issues/723#issuecomment-1297668507
+                         cosa push-container-manifest --auth=\${REGISTRY_SECRET} \
+                             --repo=${repo} ${tag_args.join(' ')} \
+                             --artifact=${artifact} --metajsonname=${metajsonname} \
+                             --build=${params.VERSION} ${v2s2_arg}
+                         """)
+
              }
           }}
       }]}
